@@ -32,7 +32,6 @@
 
 
 var noble = require('noble');
-var debug = require('debug')('wedo 2.0');
 var EventEmitter = require('events').EventEmitter;
 
 var util = require('util');
