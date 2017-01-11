@@ -1,0 +1,42 @@
+{
+  "name": "WeDo2",
+  "version": "1.0.0",
+  "description": "A library for controlling the Lego WeDo 2.0",
+  "main": "index.js",
+  "keywords": [
+    "bluetooth",
+    "ble",
+    "lego",
+    "WeDo",
+    "WeDo 2.0",
+    "Toy"
+  ],
+  "author": {
+    "name": "Valentin Heun",
+    "email": "ok@valentinheun.com",
+    "web": "https://valentinheun.com"
+  },
+  "maintainers": [
+  ],
+  "bugs": {
+    "url": ""
+  },
+  "dependencies": {
+    "debug": "^2.1.1",
+    "lodash": "3.9.3",
+    "noble": "^1.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "license": {
+    "name": "MIT",
+    "url": "http://opensource.org/licenses/MIT"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ]
+}
