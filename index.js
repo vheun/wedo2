@@ -1,6 +1,34 @@
 /**
- * Created by heun on 1/10/17.
+ *
+ * Created by Valentin Heun on 1/10/17.
+ *
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2017 Valentin Heun
+ *
+ * This Library is build on code fragments from rolling-spider (The MIT License) by Jack Watson-Hamblin
+ * https://github.com/voodootikigod/node-rolling-spider
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ *
  */
+
 
 
 var noble = require('noble');
@@ -377,7 +405,7 @@ WeDo2.prototype.handshake = function (callback) {
 			return;
 		}
 		this.status.battery = data[data.length - 1];
-		this.emit('battery', this.status.battery);
+		this.emit('battery', data[data.length - 1]);
 
 		//this.cout('Battery level: ' + this.status.battery + '%');
 	}.bind(this));
@@ -481,7 +509,7 @@ WeDo2.prototype.disconnect = function (callback) {
  *
  * @param callback to be called once the signal strength has been identified
  */
-WeDo2.prototype.signalStrength = function (callback) {
+WeDo2.prototype.getSignalStrength = function (callback) {
 	if (this.connected) {
 		this.peripheral.updateRssi(callback);
 	} else {
