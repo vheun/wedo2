@@ -1,6 +1,6 @@
 # wedo 2.0
 
-This is a library for the Lego WeDo 2.0 set.
+This is a node.js module for the Lego WeDo 2.0 set.
 
 TODO: This library will be extended to support multiple WeDo's
 
