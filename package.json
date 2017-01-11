@@ -20,7 +20,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vheun/wedo2"
+    "url": "git@github.com:vheun/wedo2.git"
   },
   "license": "MIT",
   "os": [
