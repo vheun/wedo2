@@ -14,9 +14,7 @@
   "author": "Valentin Heun <ok@valentinheun.com> (https://valentinheun.com)",
   "maintainers": [],
   "dependencies": {
-    "debug": "^2.1.1",
-    "lodash": "3.9.3",
-    "noble": "^1.1.0"
+    "noble": "^1.7.*"
   },
   "repository": {
     "type": "git",
