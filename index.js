@@ -161,21 +161,15 @@ WeDo2.prototype.isWeDoPeripheral = function (peripheral) {
 		return false;
 	}
 
-	//console.log("-------------");
 	var localName = peripheral.advertisement.localName;
 	var manufacturer = peripheral.advertisement.serviceUuids;
-
-	//console.log(localName + ": " + manufacturer);
 
 	var weDoServiceID = "000015231212efde1523785feabcd123";
 	var weDoName = "LPF2 Smart Hub 2 I/O";
 
-	//console.log(weDoName);
-
 	var localNameMatch = localName && localName.indexOf(weDoName) === 0;
-	var manufacturerMatch = manufacturer && manufacturer.indexOf(weDoServiceID) === 0; //manufacturer.toString('hex')
+	var manufacturerMatch = manufacturer && manufacturer.indexOf(weDoServiceID) === 0;
 
-	// Is true for EITHER an "Wedo Name" name OR the right Service ID code.
 	return localNameMatch || manufacturerMatch;
 };
 
@@ -199,7 +193,6 @@ WeDo2.prototype.setup = function (uuid, callback) {
 		} else {
 			this.wedo[uuid].services = services;
 			this.wedo[uuid].characteristics = characteristics;
-			//console.log(characteristics);
 			this.handshake(uuid, callback);
 		}
 	}.bind(this));
@@ -267,7 +260,6 @@ WeDo2.prototype.handshake = function (uuid, callback) {
 			if (data[1]) {
 				if (data[3] === 34) {
 					thisPort.type = "tiltSensor";
-					//port, type, mode, format, callback
 					this.writePortDefinition(uuid, data[0], data[3], 0x00, 0x01, function () {
 						console.log("activated tilt sensor on port " + data[0] + " @ " + uuid);
 					});
@@ -328,7 +320,6 @@ WeDo2.prototype.handshake = function (uuid, callback) {
 			return;
 		}
 		console.log("valueformat");
-		console.log(data)
 	}.bind(this, uuid));
 
 	// todo check which one is the battery
@@ -339,7 +330,6 @@ WeDo2.prototype.handshake = function (uuid, callback) {
 		}
 		this.emit('battery', data[data.length - 1], uuid);
 
-		//this.cout('Battery level: ' + this.status.battery + '%');
 	}.bind(this, uuid));
 
 	this.getCharacteristic(uuid, this.button).on('data', function (uuid, data, isNotification) {
@@ -349,7 +339,6 @@ WeDo2.prototype.handshake = function (uuid, callback) {
 
 		this.emit('button', data[data.length - 1], uuid);
 
-		//this.cout('Battery level: ' + this.status.battery + '%');
 	}.bind(this, uuid));
 
 	this.pingMotor(uuid);
