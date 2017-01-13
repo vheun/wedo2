@@ -29,7 +29,7 @@
  *
  */
 
-
+// todo battery needs to be better solved
 
 var noble = require('noble');
 var EventEmitter = require('events').EventEmitter;
@@ -73,6 +73,8 @@ var WeDo2 = function (options) {
 	this.wedo = {};
 
 	this.ble = noble;
+
+	this.connect();
 
 	// handle disconnect gracefully
 	this.ble.on('warning', function (message) {
@@ -122,7 +124,12 @@ WeDo2.prototype.connect = function (callback) {
 				this.wedo[peripheral.uuid].peripheral = peripheral;
 
 				this.cout('Found the following WeDo: ' + peripheral.advertisement.localName + ' with UUID ' + peripheral.uuid);
-				this.connectPeripheral(peripheral.uuid, callback);
+
+				this.connectPeripheral(peripheral.uuid, function (uuid){
+
+					this.emit('connected', uuid);
+
+				}.bind(this,peripheral.uuid));
 			}
 		}
 	}.bind(this));
@@ -274,10 +281,13 @@ WeDo2.prototype.handshake = function (uuid, callback) {
 						console.log("activated motor on port " + data[0] + " @ " + uuid);
 					});
 				}
+
+				this.emit('port', data[0], true, thisPort.type, uuid);
 			} else {
 
 				if (thisPort.type !== "none") {
 					console.log("deactivated " + thisPort.type + " on port " + data[0] + " @ " + uuid);
+					this.emit('port', data[0], false, thisPort.type, uuid);
 				}
 
 				thisPort.type = "none";
@@ -352,12 +362,12 @@ WeDo2.prototype.handshake = function (uuid, callback) {
  * @param {String} unique_uuid_segment
  * @returns Characteristic
  */
-
 WeDo2.prototype.writePortDefinition = function (uuid, port, type, mode, format, callback) {
 	this.writeTo(uuid, "1563", Buffer([0x01, 0x02, port, type, mode, 0x01, 0x00, 0x00, 0x00, format, 0x01]), function () {
 		callback();
 	});
 };
+
 WeDo2.prototype.getCharacteristic = function (uuid, unique_uuid_segment) {
 	if (!uuid) return null;
 	if (!this.wedo[uuid]) return null;
@@ -420,7 +430,7 @@ WeDo2.prototype.disconnect = function () {
  */
 WeDo2.prototype.getSignalStrength = function (callback, uuid) {
 	uuid = this.getUuidFromInput(uuid);
-	if (uuid != null) {
+	if (uuid != null && this.wedo[uuid]) {
 		this.wedo[uuid].peripheral.updateRssi(callback);
 	}
 	;
@@ -429,7 +439,7 @@ WeDo2.prototype.getSignalStrength = function (callback, uuid) {
 WeDo2.prototype.getDeviceName = function (callback, uuid) {
 
 	uuid = this.getUuidFromInput(uuid);
-	if (uuid != null) {
+	if (uuid != null && this.wedo[uuid]) {
 		this.getCharacteristic(uuid, this.nameID).read(function (e, b) {
 			this(b.toString(), uuid);
 		}.bind(callback), uuid);
@@ -438,39 +448,9 @@ WeDo2.prototype.getDeviceName = function (callback, uuid) {
 	}
 };
 
-WeDo2.prototype.getUuidFromInput = function (input) {
-
-	if (typeof input === "string") {
-		if (input in this.wedo) {
-			return input;
-		} else {
-			for (var uuid in this.wedo) {
-				if (this.wedo[uuid].name === input) {
-					return uuid;
-				}
-			}
-		}
-		return null;
-	} else if (typeof input === "number") {
-		var index = 0;
-		for (var uuid in this.wedo) {
-			if (index === input) {
-				return uuid;
-			}
-			index++;
-		}
-		return null;
-	} else {
-		for (var uuid in this.wedo) {
-			return uuid;
-		}
-		return null;
-	}
-};
-
 WeDo2.prototype.setDeviceName = function (name, uuid) {
 	uuid = this.getUuidFromInput(uuid);
-	if (uuid != null) {
+	if (uuid != null && this.wedo[uuid]) {
 		this.writeTo(uuid, this.nameID, Buffer(name), function () {
 		});
 	}
@@ -478,16 +458,39 @@ WeDo2.prototype.setDeviceName = function (name, uuid) {
 
 WeDo2.prototype.setLedColor = function (R, G, B, uuid) {
 	uuid = this.getUuidFromInput(uuid);
-	if (uuid != null) {
+	if (uuid != null && this.wedo[uuid]) {
 		this.writeTo(uuid, "1565", Buffer([0x06, 0x04, 0x03, R, G, B]), function () {
 
 		});
 	}
 };
 
+WeDo2.prototype.setSound = function (frequency, length, uuid) {
+	uuid = this.getUuidFromInput(uuid);
+	if (uuid != null && this.wedo[uuid]) {
+		this.writeTo(uuid, "1565", Buffer([0x05, 0x02, 0x04,
+			this.longToByteArray(frequency)[0], this.longToByteArray(frequency)[1],
+			this.longToByteArray(length)[0], this.longToByteArray(length)[1]]), function () {
+		});
+	}
+};
+
+
+WeDo2.prototype.longToByteArray = function(integer) {
+	// we want to represent the input as a 8-bytes array
+	var byteArray = [0, 0];
+
+	for ( var index = 0; index < byteArray.length; index ++ ) {
+		var byte = integer & 0xff;
+		byteArray [ index ] = byte;
+		integer = (integer - byte) / 256 ;
+	}
+	return byteArray;
+};
+
 WeDo2.prototype.setMotor = function (speed, port, uuid) {
 	uuid = this.getUuidFromInput(uuid);
-	if (uuid != null) {
+	if (uuid != null && this.wedo[uuid]) {
 		if (typeof port === "undefined") {
 			port = null;
 		}
@@ -526,11 +529,13 @@ WeDo2.prototype.pingMotor = function (uuid) {
 	var self = this;
 
 	setInterval(function (uuid) {
+		if (this.wedo[uuid]) {
 			if (this.wedo[uuid].runMotor !== null) {
 				if (this.wedo[uuid] && this.wedo[uuid].characteristics) {
 					this.getCharacteristic(uuid, "1565").write(Buffer([this.wedo[uuid].runMotor, 0x01, 0x02, parseInt(this.wedo[uuid].motorResult)], true));
 				}
 			}
+		}
 	}.bind(this,uuid), 100);
 };
 
@@ -544,4 +549,33 @@ WeDo2.prototype.cout = function (text) {
 	console.log(text);
 };
 
-module.exports = WeDo2;
+WeDo2.prototype.getUuidFromInput = function (input) {
+	if (typeof input === "string") {
+		if (input in this.wedo) {
+			return input;
+		} else {
+			for (var uuid in this.wedo) {
+				if (this.wedo[uuid].name === input) {
+					return uuid;
+				}
+			}
+		}
+		return null;
+	} else if (typeof input === "number") {
+		var index = 0;
+		for (var uuid in this.wedo) {
+			if (index === input) {
+				return uuid;
+			}
+			index++;
+		}
+		return null;
+	} else {
+		for (var uuid in this.wedo) {
+			return uuid;
+		}
+		return null;
+	}
+};
+
+module.exports = new WeDo2();
