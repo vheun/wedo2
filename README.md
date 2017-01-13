@@ -71,7 +71,7 @@ If more then one WeDo is found, you can chose either of these methods as "device
 <b>name</b>: You can hand over the exact name of your object. If two objects have the same name, the first match will count.<br>
 <b>number</b>: You can separate the WeDo calls by providing just a number value (0,1,2,...).
 
-Set the name of your WeDo
+Set the name of your WeDo. If you use more then one device, this a good place to define names to differentiate specific WeDo's.
 ~~~~
 wedo.setDeviceName(yourName, (optional) device);
 ~~~~
