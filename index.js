@@ -81,9 +81,9 @@ var WeDo2 = function (options) {
 		this.onDisconnect();
 	}.bind(this));
 
-	process.on('exit', function () {
+	process.on('exit', function (e) {
 		this.disconnect();
-		console.log("exit");
+		console.log(e);
 		process.exit();
 	}.bind(this));
 
@@ -94,13 +94,14 @@ var WeDo2 = function (options) {
 		process.exit();
 	}.bind(this));
 
-	process.on('SIGINT', function () {
+	process.on('SIGINT', function (e) {
 		this.disconnect();
-		console.log("exit");
+		console.log(e);
 		process.exit();
 	}.bind(this));
 
 };
+
 
 util.inherits(WeDo2, EventEmitter);
 
@@ -497,10 +498,13 @@ WeDo2.prototype.setMotor = function (speed, port, uuid) {
 		this.wedo[uuid].runMotor = null;
 
 		if (port !== null) {
-			if (port === 1 && port === 2)
+			if (port === 1 || port === 2) {
 				if (this.wedo[uuid].port[port - 1].type === "motor") {
-					this.wedo[uuid].runMotor = port;
+					//this.wedo[uuid].runMotor = port;
+					if (port === 1)    this.wedo[uuid].runMotor = 0x01;
+					if (port === 2)    this.wedo[uuid].runMotor = 0x02;
 				}
+			}
 		} else {
 
 			if (this.wedo[uuid].port[0].type === "motor") {
