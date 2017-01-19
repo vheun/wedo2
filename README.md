@@ -4,6 +4,8 @@ This is a node.js module for the Lego WeDo 2.0 set.
 
 
 ####<font style="color:green;">Version 1.5 has significant changes to 1.1</font>
+Version 1.5.5 has new sensor ranges. 
+The tilt sensor output is in degree and distance sensor is in cm.
 
 
 Install
@@ -50,7 +52,7 @@ wedo2.on('battery', function (status, uuid) {
 ~~~~
 
 If a distance sensor is connected, it will send its 
-distance in the range of 0 and 512 as well the port.
+distance in the range of 0 and 10 (matching cm scale) as well the port.
 ~~~~
 wedo2.on('distanceSensor', function (distance, port, uuid) {
 	console.log("distanceSensor: "+distance+" at port "+port + " @ "+uuid);
@@ -58,7 +60,7 @@ wedo2.on('distanceSensor', function (distance, port, uuid) {
 ~~~~
 
 If a tilt sensor is connected, it will send its 
-tilt x and y in the range of -100 and 100 as well the port.
+tilt x and y in the range of -45 and 45 as well the port.
 ~~~~
 wedo2.on('tiltSensor', function (x,y, port, uuid) {
     console.log("tilt sensor: "+x+"   "+y+" at port "+port +" @ "+uuid);

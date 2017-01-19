@@ -268,12 +268,12 @@ WeDo2.prototype.handshake = function (uuid, callback) {
 			if (data[1]) {
 				if (data[3] === 34) {
 					thisPort.type = "tiltSensor";
-					this.writePortDefinition(uuid, data[0], data[3], 0x00, 0x01, function () {
+					this.writePortDefinition(uuid, data[0], data[3], 0x00, 0x00, function () {
 						console.log("activated tilt sensor on port " + data[0] + " @ " + uuid);
 					});
 				} else if (data[3] === 35) {
 					thisPort.type = "distanceSensor";
-					this.writePortDefinition(uuid, data[0], data[3], 0x02, 0x00, function () {
+					this.writePortDefinition(uuid, data[0], data[3], 0x00, 0x00, function () {
 						console.log("activated distanceSensor on port " + data[0] + " @ " + uuid);
 					});
 				} else if (data[3] === 1) {
@@ -312,7 +312,7 @@ WeDo2.prototype.handshake = function (uuid, callback) {
 					this.wedo[uuid].sensorReadingY = -(255 - this.wedo[uuid].sensorReadingY);
 				}
 
-				this.emit('tiltSensor', parseInt(this.wedo[uuid].sensorReadingX * 2.55), parseInt(this.wedo[uuid].sensorReadingY * 2.55), data[1], uuid);
+				this.emit('tiltSensor', this.wedo[uuid].sensorReadingX, this.wedo[uuid].sensorReadingY, data[1], uuid);
 			} else if (this.wedo[uuid].port[data[1] - 1].type === "distanceSensor") {
 
 				this.wedo[uuid].distanceValue = data[2];
@@ -516,14 +516,14 @@ WeDo2.prototype.setMotor = function (speed, port, uuid) {
 		}
 
 		if (this.wedo[uuid].runMotor !== null) {
-			console.log("moter: " + speed);
+
 
 			if (speed > 1 && speed <= 100) {
-				this.wedo[uuid].motorResult = this.map(speed, 1, 100, 35, 100);
+				this.wedo[uuid].motorResult = parseInt(this.map(speed, 1, 100, 15, 97));
 			} else if (speed < -1 && speed >= -100) {
-				this.wedo[uuid].motorResult = this.map(speed, -1, -100, 220, 155);
+				this.wedo[uuid].motorResult = parseInt(this.map(speed, -100, -1, 160,245));
 			} else {
-				this.wedo[uuid].motorResult = 127;
+				this.wedo[uuid].motorResult = 0;
 			}
 		}
 	}
@@ -536,11 +536,17 @@ WeDo2.prototype.pingMotor = function (uuid) {
 		if (this.wedo[uuid]) {
 			if (this.wedo[uuid].runMotor !== null) {
 				if (this.wedo[uuid] && this.wedo[uuid].characteristics) {
+					this.wedo[uuid].newMotor = this.wedo[uuid].motorResult;
+
+					if(this.wedo[uuid].newMotor  !== this.wedo[uuid].oldMotor){
+
 					this.getCharacteristic(uuid, "1565").write(Buffer([this.wedo[uuid].runMotor, 0x01, 0x02, parseInt(this.wedo[uuid].motorResult)], true));
+						this.wedo[uuid].oldMotor = this.wedo[uuid].newMotor;
+						}
 				}
 			}
 		}
-	}.bind(this,uuid), 100);
+	}.bind(this,uuid), 120);
 };
 
 WeDo2.prototype.map = function (x, in_min, in_max, out_min, out_max) {
