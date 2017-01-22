@@ -3,9 +3,10 @@
 This is a node.js module for the Lego WeDo 2.0 set.
 
 
-####<font style="color:green;">Version 1.5 has significant changes to 1.1</font>
-Version 1.5.5 has new sensor ranges. 
++ Version 1.5 has significant changes to 1.1
++ Version 1.5.5 has new sensor ranges. 
 The tilt sensor output is in degree and distance sensor is in cm.
++ Version 1.5.6 has a new initialisation method, to support the name search.
 
 
 Install
