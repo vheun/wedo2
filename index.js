@@ -58,7 +58,7 @@ function Port() {
  * @constructor
  */
 
-var WeDo2 = function (options) {
+var WeDo2 = function (nameSpace) {
 
 	this.battery = "180f";
 	this.button = "1526";
@@ -74,7 +74,7 @@ var WeDo2 = function (options) {
 
 	this.ble = noble;
 
-	this.connect();
+	this.connect(nameSpace);
 
 	// handle disconnect gracefully
 	this.ble.on('warning', function (message) {
@@ -111,12 +111,13 @@ util.inherits(WeDo2, EventEmitter);
  * @param callback to be called once connected
  * @todo Make the callback be called with an error if encountered
  */
-WeDo2.prototype.connect = function (callback) {
+WeDo2.prototype.connect = function (nameSpace, callback) {
 
 	this.cout('WeDo 2.0 Connect');
 
-	this.ble.on('discover', function (peripheral) {
-		if (this.isWeDoPeripheral(peripheral)) {
+	this.ble.on('discover', function (nameSpace, peripheral) {
+
+		if (this.isWeDoPeripheral(nameSpace, peripheral)) {
 			if (!this.wedo[peripheral.uuid]) {
 
 				this.wedo[peripheral.uuid] = new Device();
@@ -133,7 +134,7 @@ WeDo2.prototype.connect = function (callback) {
 				}.bind(this,peripheral.uuid));
 			}
 		}
-	}.bind(this));
+	}.bind(this, nameSpace));
 
 	if (this.ble.state === 'poweredOn') {
 		this.cout('WeDo2.forceConnect');
@@ -164,7 +165,7 @@ WeDo2.prototype.connect = function (callback) {
  * @param  {Object}  peripheral A BLE peripheral record
  * @return {Boolean}
  */
-WeDo2.prototype.isWeDoPeripheral = function (peripheral) {
+WeDo2.prototype.isWeDoPeripheral = function (nameSpace, peripheral) {
 	if (!peripheral) {
 		return false;
 	}
@@ -177,6 +178,12 @@ WeDo2.prototype.isWeDoPeripheral = function (peripheral) {
 
 	var localNameMatch = localName && localName.indexOf(weDoName) === 0;
 	var manufacturerMatch = manufacturer && manufacturer.indexOf(weDoServiceID) === 0;
+
+	// look for a specific string in the name
+	if(nameSpace){
+		manufacturerMatch = false;
+		localNameMatch = localName && localName.indexOf(nameSpace) !== -1;
+	}
 
 	return localNameMatch || manufacturerMatch;
 };
@@ -588,4 +595,4 @@ WeDo2.prototype.getUuidFromInput = function (input) {
 	}
 };
 
-module.exports = new WeDo2();
+module.exports = WeDo2;

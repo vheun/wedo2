@@ -19,7 +19,16 @@ npm install wedo2
 
 Once the wedo2 is loaded, the module starts searching for WeDo's
 ~~~~js
-var wedo2 = require('wedo2');
+var Wedo2 = require('WeDo2');
+var wedo2 = new Wedo2();
+~~~~
+
+If you want to search for a specific range of WeDo's, you can add parts of their names as argument.
+The following example will search for WeDo's that all have "lego" as part of their name.
+
+~~~~js
+var Wedo2 = require('WeDo2');
+var wedo2 = new Wedo2("lego");
 ~~~~
 
 ####Events
