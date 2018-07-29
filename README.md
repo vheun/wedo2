@@ -16,7 +16,7 @@ npm install wedo2
 ~~~~
 
 
-####How to initialize a Wedo block
+#### How to initialize a Wedo block
 
 Once the wedo2 is loaded, the module starts searching for WeDo's
 ~~~~js
@@ -32,7 +32,7 @@ var Wedo2 = require('WeDo2');
 var wedo2 = new Wedo2("lego");
 ~~~~
 
-####Events
+#### Events
 
 All events emit the uuid from the WeDo they have been placed from.
 The uuid is always the last argument.
@@ -95,7 +95,7 @@ wedo2.on('port', function (port, connected, type, uuid) {
 });
 ~~~~
 
-####Setters
+#### Setters
 
 Without a uuid argument, all setters will set values for the first WeDo found.
 If you use more then one wedo you can reach the specific device via the uuid argument with the following methods.
@@ -132,7 +132,7 @@ wedo2.setSound(frequency, length, (optional) uuid)
 ~~~~
 
 
-####Getters	
+#### Getters
 		
 If you work with more then one WeDo, you have the same uuid choices (nothing, uuid, name, number) as with the setters.		
 		
@@ -151,7 +151,7 @@ wedo2.getSignalStrength(function (err, signal, uuid) {
 }, uuid);
 ~~~~
 
-####Other interesting things
+#### Other interesting things
 	
 Each WeDo is saved in an object reachable via:
 
