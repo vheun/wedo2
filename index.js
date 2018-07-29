@@ -265,9 +265,7 @@ WeDo2.prototype.handshake = function (uuid, callback) {
 
 	this.getCharacteristic(uuid, this.portType).on('data', function (uuid, data, isNotification) {
 
-		if (!isNotification) {
-			return;
-		}
+		//if (!isNotification) {return;}
 		if (data[0] === 1 || data[0] === 2) {
 			var thisPort = this.wedo[uuid].port[data[0] - 1];
 			thisPort.connected = data[1];
@@ -305,9 +303,7 @@ WeDo2.prototype.handshake = function (uuid, callback) {
 	}.bind(this, uuid));
 
 	this.getCharacteristic(uuid, this.sensorValue).on('data', function (uuid, data, isNotification) {
-		if (!isNotification) {
-			return;
-		}
+        //if (!isNotification) {return;}
 		if (data[1] === 1 || data[1] === 2) {
 			if (this.wedo[uuid].port[data[1] - 1].type === "tiltSensor") {
 				this.wedo[uuid].sensorReadingX = data[2];
@@ -334,26 +330,20 @@ WeDo2.prototype.handshake = function (uuid, callback) {
 	}.bind(this, uuid));
 
 	this.getCharacteristic(uuid, this.valueformat).on('data', function (uuid, data, isNotification) {
-		if (!isNotification) {
-			return;
-		}
+        //if (!isNotification) {return;}
 		console.log("valueformat");
 	}.bind(this, uuid));
 
 	// todo check which one is the battery
 	// Register listener for battery notifications.
 	this.getCharacteristic(uuid, this.battery).on('data', function (uuid, data, isNotification) {
-		if (!isNotification) {
-			return;
-		}
+        //if (!isNotification) {return;}
 		this.emit('battery', data[data.length - 1], uuid);
 
 	}.bind(this, uuid));
 
 	this.getCharacteristic(uuid, this.button).on('data', function (uuid, data, isNotification) {
-		if (!isNotification) {
-			return;
-		}
+        //if (!isNotification) {return;}
 
 		this.emit('button', data[data.length - 1], uuid);
 
