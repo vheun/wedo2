@@ -44,14 +44,14 @@ wedo2.on('connected', function (uuid) {
     console.log('I found a WeDo with uuid: '+uuid);
     // Place getters and setters in here, to make sure that they are called,
     // when the object is connectged
-}
+});
 ~~~~
 
 If a new WeDo is disconnected it emits the "connected" event.
 ~~~~js
 wedo2.on('disconnected', function (uuid) {
     console.log('I removed a WeDo with uuid: '+uuid);
-}
+});
 ~~~~
 
 Battery status in %. uuid tells on which WeDo the status was emitted.
