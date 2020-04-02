@@ -14,7 +14,7 @@
   "author": "Valentin Heun <ok@valentinheun.com> (https://valentinheun.com)",
   "maintainers": [],
   "dependencies": {
-    "noble": "^1.9.1"
+    "@abandonware/noble": "^1.9.2-7"
   },
   "repository": {
     "type": "git",

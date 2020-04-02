@@ -31,7 +31,7 @@
 
 // todo battery needs to be better solved
 
-var noble = require('noble');
+var noble = require('@abandonware/noble');
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
