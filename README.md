@@ -4,9 +4,10 @@ This is a node.js module for the Lego WeDo 2.0 set.
 
 
 + Version 1.5 has significant changes to 1.1
-+ Version 1.5.5 has new sensor ranges. 
++ Version 1.5.5 has new sensor ranges.
 The tilt sensor output is in degree and distance sensor is in cm.
 + Version 1.5.6 has a new initialisation method, to support the name search.
++ Version 1.6.x For compatibility this version switched dependencies from noble to abandonware/noble.
 
 
 Install
@@ -61,7 +62,7 @@ wedo2.on('battery', function (status, uuid) {
 });
 ~~~~
 
-If a distance sensor is connected, it will send its 
+If a distance sensor is connected, it will send its
 distance in the range of 0 and 10 (matching cm scale) as well the port.
 ~~~~js
 wedo2.on('distanceSensor', function (distance, port, uuid) {
@@ -69,7 +70,7 @@ wedo2.on('distanceSensor', function (distance, port, uuid) {
 });
 ~~~~
 
-If a tilt sensor is connected, it will send its 
+If a tilt sensor is connected, it will send its
 tilt x and y in the range of -45 and 45 as well the port.
 ~~~~js
 wedo2.on('tiltSensor', function (x,y, port, uuid) {
@@ -113,7 +114,7 @@ Set the Led color of the WeDo controller to an RGB value.
 Each value is in the scale from 0-255.
 For example Red, Green Blue all set to 255 is white:
 ~~~~js
-wedo2.setLedColor(r,g,b, (optional) uuid); 
+wedo2.setLedColor(r,g,b, (optional) uuid);
 ~~~~
 
 Set the motor speed, if a motor is connected.<br>
@@ -133,9 +134,9 @@ wedo2.setSound(frequency, length, (optional) uuid)
 
 
 #### Getters
-		
+
 If you work with more then one WeDo, you have the same uuid choices (nothing, uuid, name, number) as with the setters.		
-		
+
 To get the name of your WeDo
 ~~~~js
 wedo2.getDeviceName(function(name, uuid){
@@ -152,7 +153,7 @@ wedo2.getSignalStrength(function (err, signal, uuid) {
 ~~~~
 
 #### Other interesting things
-	
+
 Each WeDo is saved in an object reachable via:
 
 ~~~~js
@@ -160,7 +161,7 @@ wedo2.wedo
 ~~~~
 
 In this object new WeDo's are saved with their uuid as key for the time that they are connected.
-If you know the uuid of your WeDo, you can test its connection like so: 
+If you know the uuid of your WeDo, you can test its connection like so:
 ~~~~js
 if(wedo2.wedo[uuid])
 ~~~~
