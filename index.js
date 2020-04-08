@@ -31,7 +31,7 @@
  *
  */
 
-// todo battery needs to be better solved
+//  Motor Setter
 
 var noble = require('@abandonware/noble');
 var EventEmitter = require('events').EventEmitter;
@@ -56,6 +56,8 @@ function Port() {
 	this.type = "none";
 	this.runMotor = null;
 	this.motorResult = 127;
+	this.newMotor = 127;
+	this.oldMotor = 127;
 }
 
 /**
@@ -63,7 +65,8 @@ function Port() {
  * @constructor
  */
 
-var WeDo2 = function (nameSpace) {
+var WeDo2 = function (nameSpace, interval) {
+	framerate = (typeof interval !== 'undefined') ?  interval : framerate
 
 	this.battery = "180f";
 	this.button = "1526";
@@ -122,7 +125,7 @@ WeDo2.prototype.connect = function (nameSpace, callback) {
 	this.cout('WeDo 2.0 Connect');
 
 	this.ble.on('discover', function (nameSpace, peripheral) {
-		
+
 		let device = this.isWeDoPeripheral(nameSpace, peripheral);
 		if (device) {
 			if (!this.wedo[peripheral.uuid]) {
@@ -132,16 +135,10 @@ WeDo2.prototype.connect = function (nameSpace, callback) {
 				this.wedo[peripheral.uuid].uuid = peripheral.uuid;
 				this.wedo[peripheral.uuid].peripheral = peripheral;
 
-				if(device === "boost")
-				this.cout('Found the following Lego Move Hub: ' + peripheral.advertisement.localName + ' with UUID ' + peripheral.uuid);
-
 				if(device === "wedo2")
 					this.cout('Found the following Lego Wedo 2.0: ' + peripheral.advertisement.localName + ' with UUID ' + peripheral.uuid);
 
 				this.connectPeripheral(peripheral.uuid, function (uuid){
-					console.log("emit", "connectPeripheral");
-					this.emit('connected', uuid);
-
 				}.bind(this,peripheral.uuid));
 			}
 		}
@@ -220,6 +217,7 @@ WeDo2.prototype.isWeDoPeripheral = function (nameSpace, peripheral) {
  * @private
  */
 WeDo2.prototype.setup = function (uuid, callback) {
+	this.emit('connected', uuid);
 	this.cout('Connected to: ' + this.wedo[uuid].peripheral.advertisement.localName);
 
 	this.cout('Starting Setup for ' + uuid);
@@ -232,6 +230,25 @@ WeDo2.prototype.setup = function (uuid, callback) {
 		} else {
 			this.wedo[uuid].services = services;
 			this.wedo[uuid].characteristics = characteristics;
+
+			// activate Button
+			this.writeTo(uuid, "1624", Buffer([0x05,0x00,0x01,0x02,0x02]), function () {
+			});
+
+
+
+			setTimeout(function(){
+				this.writeTo(uuid, "1624", Buffer([0x05,0x00,0x01,0x06,0x02]), function () {
+					console.log("activated Battery");
+				});
+
+				/*this.writeTo(uuid, "1624", Buffer([0x05,0x00,0x01,0x05,0x02]), function () {
+					console.log("activated Signal Strength");
+				});*/
+
+			}.bind(this), 500);;
+
+
 			this.handshake(uuid, callback, this.wedo[uuid].deviceType);
 		}
 	}.bind(this));
@@ -243,6 +260,11 @@ WeDo2.prototype.connectPeripheral = function (uuid, callback) {
 	this.name = this.wedo[uuid].peripheral.advertisement.localName;
 	this.wedo[uuid].peripheral.connect(
 		function (uuid) {
+			if(this.wedo[uuid].deviceType === "boost") {
+				this.wedo[uuid].name = this.wedo[uuid].peripheral.advertisement.localName;
+				this.cout('Found the following Lego Move Hub: ' + this.wedo[uuid].name + ' with UUID ' + uuid);
+			}
+
 			this.setup(uuid, callback)
 		}.bind(this, uuid));
 	this.wedo[uuid].peripheral.on('disconnect', function (uuid) {
@@ -328,6 +350,7 @@ if(thisDeviceType === "wedo2") {
 
 			//check for Ports signal
 			if (messageType === 0x04) {
+				if(thisPort.byte === 57) return;
 					thisPort.connected = isPortConnected;
 				if (isPortConnected) {
 
@@ -343,35 +366,39 @@ if(thisDeviceType === "wedo2") {
 						});
 					} else if (connectedDevice === 0x25) {
 						thisPort.type = "visionSensor";
-						this.writePortDefinitionToBoost(uuid, thisPort.byte, 0x00, framerate, function () {
+						this.writePortDefinitionToBoost(uuid, thisPort.byte, 0x06, framerate, function () {
 							console.log("activated vision sensor on port " + thisPort.byte + " @ " + uuid);
 						});
 					} else if (connectedDevice === 0x01) {
 						thisPort.type = "motor";
-					this.writePortDefinitionToBoost(uuid,thisPort.byte, 0x00, framerate, function () {
+					this.writePortDefinitionToBoost(uuid,thisPort.byte, 0x01, framerate, function () {
 							console.log("activated motor on port " + thisPort.byte + " @ " + uuid);
 						});
 					}
 					else if (connectedDevice === 0x17) {
 						thisPort.type = "LEDLight";
-						this.writePortDefinitionToBoost(uuid,thisPort.byte, 0x00, framerate, function () {
+						//--------------!
+						this.writePortDefinitionToBoost(uuid,thisPort.byte, 0x01, framerate, function () {
 							console.log("activated LED Light on port " + thisPort.byte + " @ " + uuid);
 						});
 					}
 					else if (connectedDevice === 0x05) {
 						thisPort.type = "Button";
-						this.writePortDefinitionToBoost(uuid,thisPort.byte, 0x00, framerate, function () {
+						console.log("--------------------------  found Button");
+
+						/*this.writePortDefinitionToBoost(uuid,thisPort.byte, 0x05, framerate, function () {
 							console.log("activated Button on port " + thisPort.byte + " @ " + uuid);
-						});
+						});*/
 					}
 					else if (connectedDevice === 0x26 || connectedDevice === 0x27) {
 						thisPort.type = "motor";
-						this.writePortDefinitionToBoost(uuid, thisPort.byte, 0x00,framerate, function () {
+						this.writePortDefinitionToBoost(uuid, thisPort.byte, 0x02,framerate, function () {
+						//this.writeTo(uuid, this.boostHub, Buffer([0x0A, 0x00, 0x81, 0x32, 0x11, 0x51, 0x01, R, G, B]), function () {
 							console.log("activated tacho Motor on port " + thisPort.byte + " @ " + uuid);
-						});
+						}.bind(this, uuid));
 					}
 
-console.log("emit", "boost port");
+
 
 					if (thisPort.type !== "none") {
 						this.emit('port', thisPort.byte, true, thisPort.type, uuid);
@@ -386,12 +413,8 @@ console.log("emit", "boost port");
 
 					thisPort.type = "none";
 				}
-			}
-
-
-			if (messageType === 0x45) {
-
-				if (connectedDevice === 0x25) {
+			} else 	if (messageType === 0x45) {
+					if(thisPort.byte === 57) return;
 					if (this.wedo[uuid].port[thisPort.byte].type === "tiltSensor") {
 						this.wedo[uuid].sensorReadingX = data[4];
 						if (this.wedo[uuid].sensorReadingX > 100) {
@@ -401,25 +424,36 @@ console.log("emit", "boost port");
 						if (this.wedo[uuid].sensorReadingY > 100) {
 							this.wedo[uuid].sensorReadingY = -(255 - this.wedo[uuid].sensorReadingY);
 						}
-						console.log("emit", "wedo port 1");
 						this.emit('tiltSensor', this.wedo[uuid].sensorReadingX, this.wedo[uuid].sensorReadingY, thisPort.byte, uuid);
 					} else if (this.wedo[uuid].port[thisPort.byte].type === "distanceSensor") {
+						this.wedo[uuid].distanceValue = data[2];
 
-						this.wedo[uuid].distanceValue = data[4];
-
-						if (data[5] === 1) {
-							this.wedo[uuid].distanceValue = data[4] + 255;
+						if (data[3] === 1) {
+							this.wedo[uuid].distanceValue = data[2] + 255;
 						}
-						console.log("emit", "wedo port 2");
+						//console.log("emit", "wedo prot6");
 						this.emit('distanceSensor', this.wedo[uuid].distanceValue, thisPort.byte, uuid);
-					} else if (this.wedo[uuid].port[thisPort.byte].type === "visionSensor") {
 
-						console.log(data);
-					}
+					} else 	if (this.wedo[uuid].port[thisPort.byte].type === "visionSensor") {
+						this.wedo[uuid].colorLuminanceValue = {r: data[4], g: data[6], b: data[8]};
+						this.emit('visionSensor', this.wedo[uuid].colorLuminanceValue, thisPort.byte, uuid);
+					} else
+				if (this.wedo[uuid].port[thisPort.byte].type === "motor") {
+					let AbsolutDegree = data[4] | (data[5]<<8) | (data[6]<<16) | (data[7]<<24);
+					let fullRotation = AbsolutDegree % 360;
+					let rotationCount = ~~(AbsolutDegree / 360);
+					this.wedo[uuid].port[thisPort.byte].motorRotation = {rotationAngle: fullRotation, rotationCount: rotationCount}
+					this.emit('distanceSensor', this.wedo[uuid].port[thisPort.byte].motorRotation, thisPort.byte, uuid);
+				} else {
+					console.log(data);
 				}
+
+
+			} else if (messageType === 0x01 && data [3] === 0x02 && data[4] === 0x06) {
+				this.emit('button', data[data.length - 1], uuid);
+			} else if (messageType === 0x01 && data [3] === 0x06 && data[4] === 0x06) {
+				this.emit('battery', data[data.length - 1], uuid);
 			}
-
-
 
 		}.bind(this, uuid));
 
@@ -432,7 +466,6 @@ todo: add motor emit to readings
 */
 
 	} else if(thisDeviceType === "wedo2") {
-
 
                 this.getCharacteristic(uuid, this.portType).on('data', function (uuid, data, isNotification) {
 
@@ -498,7 +531,7 @@ todo: add motor emit to readings
 					let thisPort = this.wedo[uuid].port[""+portID];
 
 
-					//if (!isNotification) {return;}
+
                     if (portID) {
                         if (this.wedo[uuid].port["" + portID].type === "tiltSensor") {
                             this.wedo[uuid].sensorReadingX = data[2];
@@ -564,9 +597,7 @@ WeDo2.prototype.writePortDefinition = function (uuid, port, type, mode, format, 
 	});
 };
 WeDo2.prototype.writePortDefinitionToBoost = function (uuid, port, mode, thisFrameRate, callback ) {
-
 	let frameRateArray = this.numberTo4ByteArray(thisFrameRate);
-console.log(frameRateArray);
 	this.writeTo(uuid, "1624", Buffer([0x0a, 0x00, 0x41, port, mode, frameRateArray[0], frameRateArray[1], frameRateArray[2], frameRateArray[3], 0x01]), function () {
 		callback();
 	});
@@ -649,10 +680,17 @@ WeDo2.prototype.disconnect = function () {
 WeDo2.prototype.getSignalStrength = function (callback, uuid) {
 	uuid = this.getUuidFromInput(uuid);
 	if (uuid != null && this.wedo[uuid]) {
-		this.wedo[uuid].peripheral.updateRssi(callback);
-	}
-	;
-};
+
+		if(this.wedo[uuid].deviceType === "wedo2") {
+			this.wedo[uuid].peripheral.updateRssi(callback);
+		} else if (this.wedo[uuid].deviceType === "boost"){
+			this.wedo[uuid].peripheral.updateRssi(function(err, db){
+				callback(err,db, uuid);
+			});
+		}
+		}
+	};
+
 
 WeDo2.prototype.getDeviceName = function (callback, uuid) {
 
@@ -668,19 +706,51 @@ WeDo2.prototype.getDeviceName = function (callback, uuid) {
 
 WeDo2.prototype.setDeviceName = function (name, uuid) {
 	uuid = this.getUuidFromInput(uuid);
-	if (uuid != null && this.wedo[uuid]) {
-		this.writeTo(uuid, this.nameID, Buffer(name), function () {
-		});
+	let thisDeviceType = this.wedo[uuid].deviceType;
+
+	if(thisDeviceType === "wedo2") {
+		if (uuid != null && this.wedo[uuid]) {
+			this.writeTo(uuid, this.nameID, Buffer(name), function () {
+			});
+		}
+	} else if(thisDeviceType === "boost") {
+		setTimeout(function(name, uuid) {
+			let size = Buffer(name).length + 5;
+			let sendMessage = [this.numberTo4ByteArray(size)[0], 0x00, 0x01, 0x01, 0x01]
+			let bufferFromName = Buffer.from(name);
+
+			bufferFromName.forEach(function (item, index) {
+				sendMessage.push(item);
+			});
+
+			this.writeTo(uuid, this.boostHub, Buffer.from(sendMessage), function () {
+				//	console.log(this.wedo[uuid].peripheral.advertisement.localName);
+			});
+		}.bind(this, name, uuid), 500);
 	}
 };
 
 WeDo2.prototype.setLedColor = function (R, G, B, uuid) {
 	uuid = this.getUuidFromInput(uuid);
+	let port = 0x32;
+
+	let thisDeviceType = this.wedo[uuid].deviceType;
+
+	if(thisDeviceType === "wedo2"){
 	if (uuid != null && this.wedo[uuid]) {
 		this.writeTo(uuid, "1565", Buffer([0x06, 0x04, 0x03, R, G, B]), function () {
-
 		});
 	}
+	} else if (thisDeviceType === "boost"){
+		if (uuid != null && this.wedo[uuid]) {
+			console.log("setRGB LED");
+			// -------!
+			this.writeTo(uuid, this.boostHub, Buffer([0x0A, 0x00, 0x81, 0x32, 0x11, 0x51, 0x01, R, G, B]), function () {
+			});
+		}
+	}
+
+
 };
 
 WeDo2.prototype.setSound = function (frequency, length, uuid) {
@@ -712,35 +782,24 @@ WeDo2.prototype.setMotor = function (speed, port, uuid) {
 		if (typeof port === "undefined") {
 			port = null;
 		}
-		this.wedo[uuid].runMotor = null;
 
+		let thisMotor = this.wedo[uuid].port[port];
+		if(!thisMotor) return;
+		thisMotor.runMotor = null;
 		if (port !== null) {
-			if (port === 1 || port === 2) {
-				if (this.wedo[uuid].port[port - 1].type === "motor") {
+				if (thisMotor.type === "motor") {
 					//this.wedo[uuid].runMotor = port;
-					if (port === 1)    this.wedo[uuid].runMotor = 0x01;
-					if (port === 2)    this.wedo[uuid].runMotor = 0x02;
+					thisMotor.runMotor = port;
 				}
-			}
-		} else {
-
-			if (this.wedo[uuid].port[0].type === "motor") {
-
-				this.wedo[uuid].runMotor = 0x01;
-			} else if (this.wedo[uuid].port[1].type === "motor") {
-				this.wedo[uuid].runMotor = 0x02;
-			}
 		}
 
-		if (this.wedo[uuid].runMotor !== null) {
-
-
+		if (thisMotor.runMotor !== null) {
 			if (speed > 1 && speed <= 100) {
-				this.wedo[uuid].motorResult = parseInt(this.map(speed, 1, 100, 15, 97));
+				thisMotor.motorResult = parseInt(this.map(speed, 1, 100, 15, 97));
 			} else if (speed < -1 && speed >= -100) {
-				this.wedo[uuid].motorResult = parseInt(this.map(speed, -100, -1, 160,245));
+				thisMotor.motorResult = parseInt(this.map(speed, -100, -1, 160,245));
 			} else {
-				this.wedo[uuid].motorResult = 0;
+				thisMotor.motorResult = 0;
 			}
 		}
 	}
@@ -753,13 +812,26 @@ WeDo2.prototype.pingMotor = function (uuid) {
 		if (this.wedo[uuid]) {
 			if (this.wedo[uuid].runMotor !== null) {
 				if (this.wedo[uuid] && this.wedo[uuid].characteristics) {
-					this.wedo[uuid].newMotor = this.wedo[uuid].motorResult;
 
-					if(this.wedo[uuid].newMotor  !== this.wedo[uuid].oldMotor){
+					let motorCount = 0;
+					for(let key in this.wedo[uuid].port){
+						if (this.wedo[uuid].port[key].type === "motor") {
+							let thisMotor = this.wedo[uuid].port[key];
+							thisMotor.newMotor = thisMotor.motorResult;
+							if(thisMotor.newMotor  !== thisMotor.oldMotor){
+								setTimeout(function(){
 
-					this.getCharacteristic(uuid, "1565").write(Buffer([this.wedo[uuid].runMotor, 0x01, 0x02, parseInt(this.wedo[uuid].motorResult)], true));
-						this.wedo[uuid].oldMotor = this.wedo[uuid].newMotor;
+								if(this.wedo[uuid].deviceType === "wedo2") {
+									this.getCharacteristic(uuid, "1565").write(Buffer([key, 0x01, 0x02, parseInt(thisMotor.motorResult)], true));
+								} else if(this.wedo[uuid].deviceType === "boost") {
+										this.writeTo(uuid, this.boostHub, Buffer([0x07, 0x00, 0x81, key, 0x11, 0x07, parseInt(thisMotor.motorResult)]), function () {});
+								}
+								}.bind(this, uuid), i*11);
+								thisMotor.oldMotor = thisMotor.newMotor;
+							}
+							motorCount++;
 						}
+					}
 				}
 			}
 		}

@@ -1,6 +1,6 @@
-# wedo 2.0
+# wedo 2.0 (+ Boost & Power Up support)
 
-This is a node.js module for the Lego WeDo 2.0 set.
+This is a node.js module for the Lego WeDo 2.0 set. The latest version supports Boost as well. 
 
 
 + Version 1.5 has significant changes to 1.1
@@ -8,6 +8,7 @@ This is a node.js module for the Lego WeDo 2.0 set.
 The tilt sensor output is in degree and distance sensor is in cm.
 + Version 1.5.6 has a new initialisation method, to support the name search.
 + Version 1.6.x For compatibility this version switched dependencies from noble to abandonware/noble.
++ + Version 1.7.x Supports the Lego Boost and other Lego connected Hub devices additionally to the wedo. 
 
 
 Install
@@ -17,9 +18,10 @@ npm install wedo2
 ~~~~
 
 
-#### How to initialize a Wedo block
+#### How to initialize Wedo / Boost / Power Up
 
 Once the wedo2 is loaded, the module starts searching for WeDo's
+
 ~~~~js
 var Wedo2 = require('WeDo2');
 var wedo2 = new Wedo2();
@@ -31,6 +33,15 @@ The following example will search for WeDo's that all have "lego" as part of the
 ~~~~js
 var Wedo2 = require('WeDo2');
 var wedo2 = new Wedo2("lego");
+~~~~
+
+#### Additional initialization parameter for Boost only
+Boost allows to set the interval time between each sensor reading. It defines how often the Boost hub sends out messages. Default is 5. 
+
+~~~~js
+var interval = 5;
+var Wedo2 = require('WeDo2');
+var wedo2 = new Wedo2("lego", interval);
 ~~~~
 
 #### Events
@@ -49,6 +60,7 @@ wedo2.on('connected', function (uuid) {
 ~~~~
 
 If a new WeDo is disconnected it emits the "connected" event.
+
 ~~~~js
 wedo2.on('disconnected', function (uuid) {
     console.log('I removed a WeDo with uuid: '+uuid);
@@ -56,6 +68,7 @@ wedo2.on('disconnected', function (uuid) {
 ~~~~
 
 Battery status in %. uuid tells on which WeDo the status was emitted.
+
 ~~~~js
 wedo2.on('battery', function (status, uuid) {
     console.log('Battery: ' + status + '% @ '+uuid);
@@ -64,6 +77,7 @@ wedo2.on('battery', function (status, uuid) {
 
 If a distance sensor is connected, it will send its
 distance in the range of 0 and 10 (matching cm scale) as well the port.
+
 ~~~~js
 wedo2.on('distanceSensor', function (distance, port, uuid) {
 	console.log('distanceSensor: '+distance+' at port '+port + ' @ '+uuid);
@@ -72,6 +86,7 @@ wedo2.on('distanceSensor', function (distance, port, uuid) {
 
 If a tilt sensor is connected, it will send its
 tilt x and y in the range of -45 and 45 as well the port.
+
 ~~~~js
 wedo2.on('tiltSensor', function (x,y, port, uuid) {
     console.log('tilt sensor: '+x+'   '+y+' at port '+port +' @ '+uuid);
@@ -79,6 +94,7 @@ wedo2.on('tiltSensor', function (x,y, port, uuid) {
 ~~~~
 
 If the WeDo button on the controller is clicked the following event is fired.
+
 ~~~~js
 wedo2.on('button', function (button, uuid) {
 	console.log('button state: '+button + ' @ '+ uuid );
@@ -86,6 +102,7 @@ wedo2.on('button', function (button, uuid) {
 ~~~~
 
 Every time a sensor or motor is connected and disconnected the port event is fired.
+
 ~~~~js
 wedo2.on('port', function (port, connected, type, uuid) {
 	if(connected){
@@ -93,6 +110,25 @@ wedo2.on('port', function (port, connected, type, uuid) {
 	} else {
 		console.log('Disconnected '+type+' on port '+port+ ' @ '+ uuid );
 	}
+});
+~~~~
+
+#### Events for Boost & Power Up Only
+
+If a the color vision sensor is connected, it will send RGB values representing the color luminance as well the port.
+
+~~~~js
+wedo2.on('visionSensor', function (colorLuminance, port, uuid) {
+	console.log('Red: '+ colorLuminance.r+', Green: '+ colorLuminance.g+', Blue: '+ colorLuminance.b+' at port '+port + ' @ '+uuid);
+});
+~~~~
+
+
+If a a tacho Motor is connected, it will emit exact rotation angles and rotation counts. The Boost set has two internal ports with two internal tacho Motors.
+
+~~~~js
+wedo2.on('motor', function (motorRotation, port, uuid) {
+	console.log('rotation angle: '+ motorRotation.rotationAngle +', rotation count: '+ motorRotation.rotationCount + ' at port '+port + ' @ '+uuid);
 });
 ~~~~
 
@@ -106,6 +142,7 @@ If you use more then one wedo you can reach the specific device via the uuid arg
 <b>number</b>: Add a number (0,1,2,...) instead of the uuid to set different devices.
 
 Set the name of your WeDo within the device. This name will be saved in your WeDo device until you rename it again. If you use more then one device, this a good place to define names to differentiate specific WeDo's.
+
 ~~~~js
 wedo2.setDeviceName(yourName, (optional) uuid);
 ~~~~
@@ -113,6 +150,7 @@ wedo2.setDeviceName(yourName, (optional) uuid);
 Set the Led color of the WeDo controller to an RGB value.
 Each value is in the scale from 0-255.
 For example Red, Green Blue all set to 255 is white:
+
 ~~~~js
 wedo2.setLedColor(r,g,b, (optional) uuid);
 ~~~~
@@ -121,12 +159,14 @@ Set the motor speed, if a motor is connected.<br>
 (Optional) If you want to operate a motor on a specific port,
 you can add the port number (1 or 2) after the speed.
 Set the port to ```null``` to leave it blank in case you want to set device.
+
 ~~~~js
 wedo2.setMotor(speed, (optionl) port, (optional) uuid);
 ~~~~
 
 Play a sound on the build in piezo speaker.
-The frequency of the sound is in kHz and the length is in ms.
+The frequency of the sound is in kHz and the length is in ms. **[wedo only]**
+
 
 ~~~~js
 wedo2.setSound(frequency, length, (optional) uuid)
@@ -138,6 +178,7 @@ wedo2.setSound(frequency, length, (optional) uuid)
 If you work with more then one WeDo, you have the same uuid choices (nothing, uuid, name, number) as with the setters.		
 
 To get the name of your WeDo
+
 ~~~~js
 wedo2.getDeviceName(function(name, uuid){
     console.log("the device name is "+name+" @ "+uuid);
@@ -162,6 +203,7 @@ wedo2.wedo
 
 In this object new WeDo's are saved with their uuid as key for the time that they are connected.
 If you know the uuid of your WeDo, you can test its connection like so:
+
 ~~~~js
 if(wedo2.wedo[uuid])
 ~~~~
@@ -176,11 +218,13 @@ var uuid = wedo2.getUuidFromInput(input)
 Once you know that it is connected, you can read all kinds of stuff:
 
 Name
+
 ~~~~js
 wedo2.wedo[uuid].name
 ~~~~
 
 Type of connected items on ports
+
 ~~~~js
 wedo2.wedo[uuid].port[0].type
 ~~~~
