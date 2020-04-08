@@ -2,6 +2,8 @@
 
 This is a node.js module for the Lego WeDo 2.0 and Lego Boost set.
 
+Since this module supports now Wedo 2.0, Boost & Power Up, the development continues with a new name: https://www.npmjs.com/package/wedoboostpoweredup
+
 + Version 2.0.0 Supports the Lego Boost and other Lego connected Hub devices additionally to the wedo2.
 + Version 1.6.x For compatibility, this version switched dependencies from noble to abandonware/noble.
 + Version 1.5.6 has a new initialization method, to support the name search.
@@ -13,7 +15,7 @@ The tilt sensor output is in degree, and the distance sensor is in cm.
 #### Install
 
 ~~~~shell
-npm install wedo2
+npm install wedoboostpoweredup
 ~~~~
 
 
@@ -22,7 +24,7 @@ npm install wedo2
 Once the wedo2 module is loaded, the module starts searching for devices (Wedo2 and Boost)
 
 ~~~~js
-var Wedo2 = require('WeDo2');
+var Wedo2 = require('wedoboostpoweredup');
 var wedo2 = new Wedo2();
 ~~~~
 
