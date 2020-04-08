@@ -122,7 +122,7 @@ util.inherits(WeDo2, EventEmitter);
  */
 WeDo2.prototype.connect = function (nameSpace, callback) {
 
-	this.cout('WeDo 2.0 Connect');
+	this.cout('Device Connect');
 
 	this.ble.on('discover', function (nameSpace, peripheral) {
 
@@ -139,19 +139,22 @@ WeDo2.prototype.connect = function (nameSpace, callback) {
 					this.cout('Found the following Lego Wedo 2.0: ' + peripheral.advertisement.localName + ' with UUID ' + peripheral.uuid);
 
 				this.connectPeripheral(peripheral.uuid, function (uuid){
+
+					this.emit('connected', uuid);
+
 				}.bind(this,peripheral.uuid));
 			}
 		}
 	}.bind(this, nameSpace));
 
 	if (this.ble.state === 'poweredOn') {
-		this.cout('WeDo2.forceConnect');
+		this.cout('Device.forceConnect');
 		this.ble.startScanning(null, true);
 	} else {
-		this.cout('WeDo2.on(stateChange)');
+		this.cout('Device.on(stateChange)');
 		this.ble.on('stateChange', function (state) {
 			if (state === 'poweredOn') {
-				this.cout('WeDo2 is poweredOn');
+				this.cout('device is poweredOn');
 				this.ble.startScanning(null, true);
 			} else {
 				this.cout('stateChange == ' + state);
@@ -217,7 +220,6 @@ WeDo2.prototype.isWeDoPeripheral = function (nameSpace, peripheral) {
  * @private
  */
 WeDo2.prototype.setup = function (uuid, callback) {
-	this.emit('connected', uuid);
 	this.cout('Connected to: ' + this.wedo[uuid].peripheral.advertisement.localName);
 
 	this.cout('Starting Setup for ' + uuid);
@@ -231,24 +233,24 @@ WeDo2.prototype.setup = function (uuid, callback) {
 			this.wedo[uuid].services = services;
 			this.wedo[uuid].characteristics = characteristics;
 
-			// activate Button
-			this.writeTo(uuid, "1624", Buffer([0x05,0x00,0x01,0x02,0x02]), function () {
-			});
-
-
-
-			setTimeout(function(){
-				this.writeTo(uuid, "1624", Buffer([0x05,0x00,0x01,0x06,0x02]), function () {
-					console.log("activated Battery");
+			if(this.wedo[uuid].deviceType === "boost") {
+				// activate Button
+				this.writeTo(uuid, "1624", Buffer([0x05, 0x00, 0x01, 0x02, 0x02]), function () {
 				});
 
-				/*this.writeTo(uuid, "1624", Buffer([0x05,0x00,0x01,0x05,0x02]), function () {
-					console.log("activated Signal Strength");
-				});*/
+				setTimeout(function () {
+					this.writeTo(uuid, "1624", Buffer([0x05, 0x00, 0x01, 0x06, 0x02]), function () {
+						console.log("activated Battery");
+					});
 
-			}.bind(this), 500);;
+					/*this.writeTo(uuid, "1624", Buffer([0x05,0x00,0x01,0x05,0x02]), function () {
+                        console.log("activated Signal Strength");
+                    });*/
+
+				}.bind(this), 500);
 
 
+			}
 			this.handshake(uuid, callback, this.wedo[uuid].deviceType);
 		}
 	}.bind(this));
@@ -264,7 +266,6 @@ WeDo2.prototype.connectPeripheral = function (uuid, callback) {
 				this.wedo[uuid].name = this.wedo[uuid].peripheral.advertisement.localName;
 				this.cout('Found the following Lego Move Hub: ' + this.wedo[uuid].name + ' with UUID ' + uuid);
 			}
-
 			this.setup(uuid, callback)
 		}.bind(this, uuid));
 	this.wedo[uuid].peripheral.on('disconnect', function (uuid) {
@@ -278,9 +279,9 @@ WeDo2.prototype.onDisconnect = function (uuid) {
 	if (this.wedo[uuid]) {
 		this.wedo[uuid].peripheral.disconnect();
 		this.wedo[uuid].peripheral = {};
-		this.cout('Disconnected from WeDo: ' + this.wedo[uuid].name);
+		this.cout('Disconnected from device: ' + this.wedo[uuid].name);
 		delete this.wedo[uuid];
-		console.log("emit", "onDisconnect");
+
 		this.emit('disconnected', uuid);
 	}
 };
@@ -293,7 +294,7 @@ WeDo2.prototype.onDisconnect = function (uuid) {
  * @private
  */
 WeDo2.prototype.handshake = function (uuid, callback, deviceType) {
-	this.cout('WeDo2 initialisation');
+	this.cout('device initialisation');
 
 	var listOfNotificationCharacteristics = [];
 
@@ -320,7 +321,7 @@ WeDo2.prototype.handshake = function (uuid, callback, deviceType) {
 if(thisDeviceType === "wedo2") {
 	// set LED lights to rgb values
 	this.writePortDefinition(uuid, 0x06, 0x17, 0x01, 0x02, function () {
-		console.log("have set RGB for LED");
+		//console.log("have set RGB for LED");
 	}.bind(this));
 	} else if(thisDeviceType === "boost") {
 		// set LED lights to rgb values
@@ -338,6 +339,7 @@ if(thisDeviceType === "wedo2") {
 			let portID = data[3];
 			let isPortConnected = data[4];
 			let connectedDevice = data[5];
+			if(portID === 59 ||portID === 60 ||portID === 57 || portID === 6) return;
 
 			if(!this.wedo[uuid].port.hasOwnProperty(""+portID)) {
 				this.wedo[uuid].port["" + portID] = new Port();
@@ -361,7 +363,7 @@ if(thisDeviceType === "wedo2") {
 						});
 					} else if (connectedDevice === 0x23) {
 						thisPort.type = "distanceSensor";
-						this.writePortDefinitionToBoost(uuid, thisPort.byte, 0x00, framerate, function () {
+						this.writePortDefinitionToBoost(uuid, thisPort.byte, 0x02, framerate, function () {
 							console.log("activated distanceSensor on port " + thisPort.byte + " @ " + uuid);
 						});
 					} else if (connectedDevice === 0x25) {
@@ -371,7 +373,8 @@ if(thisDeviceType === "wedo2") {
 						});
 					} else if (connectedDevice === 0x01) {
 						thisPort.type = "motor";
-					this.writePortDefinitionToBoost(uuid,thisPort.byte, 0x01, framerate, function () {
+					//	0x02, 0x00
+					this.writePortDefinitionToBoost(uuid,thisPort.byte, 0x07, framerate, function () {
 							console.log("activated motor on port " + thisPort.byte + " @ " + uuid);
 						});
 					}
@@ -406,14 +409,20 @@ if(thisDeviceType === "wedo2") {
 				}  else {
 
 					if (thisPort.type !== "none") {
-						console.log("deactivated " + thisPort.type + " on port " + data[3] + " @ " + uuid);
-						console.log("emit", "boost port");
+
+						console.log("deactivated" + thisPort.type + " on port " + data[3] + " @ " + uuid);
+
+						thisPort.motorResult = 127;
+						thisPort.newMotor = 127;
+						thisPort.oldMotor = 127;
+						thisPort.type = "none";
 						this.emit('port', thisPort.byte, false, thisPort.type, uuid);
 					}
 
-					thisPort.type = "none";
 				}
 			} else 	if (messageType === 0x45) {
+				if(!this.wedo[uuid].port[thisPort.byte]) return;
+
 					if(thisPort.byte === 57) return;
 					if (this.wedo[uuid].port[thisPort.byte].type === "tiltSensor") {
 						this.wedo[uuid].sensorReadingX = data[4];
@@ -426,12 +435,13 @@ if(thisDeviceType === "wedo2") {
 						}
 						this.emit('tiltSensor', this.wedo[uuid].sensorReadingX, this.wedo[uuid].sensorReadingY, thisPort.byte, uuid);
 					} else if (this.wedo[uuid].port[thisPort.byte].type === "distanceSensor") {
-						this.wedo[uuid].distanceValue = data[2];
+						//console.log(data);
+						this.wedo[uuid].distanceValue = data[6];
 
-						if (data[3] === 1) {
-							this.wedo[uuid].distanceValue = data[2] + 255;
-						}
-						//console.log("emit", "wedo prot6");
+						/*if (data[5] === 1) {
+							this.wedo[uuid].distanceValue = 0;
+						}*/
+
 						this.emit('distanceSensor', this.wedo[uuid].distanceValue, thisPort.byte, uuid);
 
 					} else 	if (this.wedo[uuid].port[thisPort.byte].type === "visionSensor") {
@@ -439,31 +449,32 @@ if(thisDeviceType === "wedo2") {
 						this.emit('visionSensor', this.wedo[uuid].colorLuminanceValue, thisPort.byte, uuid);
 					} else
 				if (this.wedo[uuid].port[thisPort.byte].type === "motor") {
+					//console.log(thisPort.byte, this.wedo[uuid].port[thisPort.byte].type ,  data);
+
 					let AbsolutDegree = data[4] | (data[5]<<8) | (data[6]<<16) | (data[7]<<24);
 					let fullRotation = AbsolutDegree % 360;
 					let rotationCount = ~~(AbsolutDegree / 360);
 					this.wedo[uuid].port[thisPort.byte].motorRotation = {rotationAngle: fullRotation, rotationCount: rotationCount}
-					this.emit('distanceSensor', this.wedo[uuid].port[thisPort.byte].motorRotation, thisPort.byte, uuid);
+					this.emit('motor', this.wedo[uuid].port[thisPort.byte].motorRotation, thisPort.byte, uuid);
 				} else {
-					console.log(data);
+
 				}
+
+
 
 
 			} else if (messageType === 0x01 && data [3] === 0x02 && data[4] === 0x06) {
 				this.emit('button', data[data.length - 1], uuid);
 			} else if (messageType === 0x01 && data [3] === 0x06 && data[4] === 0x06) {
 				this.emit('battery', data[data.length - 1], uuid);
+			} if (this.wedo[uuid].port[thisPort.byte].type === "none") {
+				delete this.wedo[uuid].port[thisPort.byte];
 			}
 
 		}.bind(this, uuid));
 
-
-
-/*
-todo: add vision sensor to readings
-todo: add motor emit to readings
-
-*/
+		this.pingMotor(uuid);
+		callback(uuid);
 
 	} else if(thisDeviceType === "wedo2") {
 
@@ -472,7 +483,7 @@ todo: add motor emit to readings
 					let portID = data[0];
 					let isPortConnected = data[1];
 					let connectedDevice = data[3];
-
+					if(!(portID === 2 || portID === 1)) return;
 
 					if(!this.wedo[uuid].port.hasOwnProperty(""+portID)) {
 						this.wedo[uuid].port["" + portID] = new Port();
@@ -482,7 +493,7 @@ todo: add motor emit to readings
 
 					//console.log(uuid, arguments);
                     //if (!isNotification) {return;}
-                    if (portID) {
+                    if (portID === 1 || portID === 2) {
                         thisPort.connected = isPortConnected;
 
                         if (isPortConnected) {
@@ -501,18 +512,28 @@ todo: add motor emit to readings
                                 this.writePortDefinition(uuid, thisPort.byte, connectedDevice, 0x02, 0x00, function () {
                                     console.log("activated motor on port " + thisPort.byte + " @ " + uuid);
                                 });
-                            }
-							console.log("emit", "wedo port 3");
+                            } if (connectedDevice === 37) {
+								thisPort.type = "distanceSensor";
+								this.writePortDefinition(uuid, thisPort.byte, connectedDevice, 0x01, 0x00, function () {
+									console.log("activated [boost] distance Sensor on port " + thisPort.byte + " @ " + uuid);
+								});
+							}
+
                             this.emit('port',thisPort.byte, true, thisPort.type, uuid);
                         } else {
-
                             if (thisPort.type !== "none") {
                                 console.log("deactivated " + thisPort.type + " on port " + thisPort.byte+ " @ " + uuid);
-								console.log("emit", "wedo port4 ");
+
+								thisPort.motorResult = 127;
+								thisPort.newMotor = 127;
+								thisPort.oldMotor = 127;
+								thisPort.type = "none";
+								delete this.wedo[uuid].port[""+portID];
                                 this.emit('port', thisPort.byte, false, thisPort.type, uuid);
+
                             }
 
-                            thisPort.type = "none";
+
                         }
                     }
 
@@ -523,7 +544,7 @@ todo: add motor emit to readings
                 this.getCharacteristic(uuid, this.sensorValue).on('data', function (uuid, data, isNotification) {
 
 					let portID = data[1];
-
+					if(!(portID === 2 || portID === 1)) return;
 					if(!this.wedo[uuid].port.hasOwnProperty(""+portID)) {
 						this.wedo[uuid].port["" + portID] = new Port();
 					}
@@ -542,7 +563,7 @@ todo: add motor emit to readings
                             if (this.wedo[uuid].sensorReadingY > 100) {
                                 this.wedo[uuid].sensorReadingY = -(255 - this.wedo[uuid].sensorReadingY);
                             }
-							console.log("emit", "wedo port5");
+
                             this.emit('tiltSensor', this.wedo[uuid].sensorReadingX, this.wedo[uuid].sensorReadingY, thisPort.byte, uuid);
                         } else if (this.wedo[uuid].port["" + portID].type === "distanceSensor") {
 
@@ -551,7 +572,7 @@ todo: add motor emit to readings
                             if (data[3] === 1) {
                                 this.wedo[uuid].distanceValue = data[2] + 255;
                             }
-							console.log("emit", "wedo prot6");
+
                             this.emit('distanceSensor', this.wedo[uuid].distanceValue, thisPort.byte, uuid);
                         }
                     }
@@ -560,27 +581,26 @@ todo: add motor emit to readings
 
                 this.getCharacteristic(uuid, this.valueformat).on('data', function (uuid, data, isNotification) {
                     //if (!isNotification) {return;}
-                    console.log("valueformat");
+                  //  console.log("valueformat");
                 }.bind(this, uuid));
 
                 // todo check which one is the battery
                 // Register listener for battery notifications.
                 this.getCharacteristic(uuid, this.battery).on('data', function (uuid, data, isNotification) {
                     //if (!isNotification) {return;}
-					console.log("emit","batery");
+
                     this.emit('battery', data[data.length - 1], uuid);
 
                 }.bind(this, uuid));
 
                 this.getCharacteristic(uuid, this.button).on('data', function (uuid, data, isNotification) {
                     //if (!isNotification) {return;}
-					console.log("emit", "button");
+
                     this.emit('button', data[data.length - 1], uuid);
 
                 }.bind(this, uuid));
 
                 this.pingMotor(uuid);
-
                 callback(uuid);
 	}
 };
@@ -680,14 +700,9 @@ WeDo2.prototype.disconnect = function () {
 WeDo2.prototype.getSignalStrength = function (callback, uuid) {
 	uuid = this.getUuidFromInput(uuid);
 	if (uuid != null && this.wedo[uuid]) {
-
-		if(this.wedo[uuid].deviceType === "wedo2") {
-			this.wedo[uuid].peripheral.updateRssi(callback);
-		} else if (this.wedo[uuid].deviceType === "boost"){
 			this.wedo[uuid].peripheral.updateRssi(function(err, db){
 				callback(err,db, uuid);
 			});
-		}
 		}
 	};
 
@@ -696,9 +711,14 @@ WeDo2.prototype.getDeviceName = function (callback, uuid) {
 
 	uuid = this.getUuidFromInput(uuid);
 	if (uuid != null && this.wedo[uuid]) {
-		this.getCharacteristic(uuid, this.nameID).read(function (e, b) {
-			this(b.toString(), uuid);
-		}.bind(callback), uuid);
+		if(this.wedo[uuid].deviceType === "wedo2") {
+			this.getCharacteristic(uuid, this.nameID).read(function (e, b) {
+				this(b.toString(), uuid);
+			}.bind(callback), uuid);
+		} else if (this.wedo[uuid].deviceType === "boost"){
+
+			callback(this.wedo[uuid].name, uuid);
+		}
 	} else {
 		console.log("not found");
 	}
@@ -728,6 +748,10 @@ WeDo2.prototype.setDeviceName = function (name, uuid) {
 			});
 		}.bind(this, name, uuid), 500);
 	}
+	if(this.wedo[uuid].name !== name)
+	{
+		this.wedo[uuid].name =name;
+	}
 };
 
 WeDo2.prototype.setLedColor = function (R, G, B, uuid) {
@@ -756,6 +780,7 @@ WeDo2.prototype.setLedColor = function (R, G, B, uuid) {
 WeDo2.prototype.setSound = function (frequency, length, uuid) {
 	uuid = this.getUuidFromInput(uuid);
 	if (uuid != null && this.wedo[uuid]) {
+		if(this.wedo[uuid].deviceType === "boost")return;
 		this.writeTo(uuid, "1565", Buffer([0x05, 0x02, 0x04,
 			this.longToByteArray(frequency)[0], this.longToByteArray(frequency)[1],
 			this.longToByteArray(length)[0], this.longToByteArray(length)[1]]), function () {
@@ -802,6 +827,7 @@ WeDo2.prototype.setMotor = function (speed, port, uuid) {
 				thisMotor.motorResult = 0;
 			}
 		}
+		//console.log(thisMotor);
 	}
 };
 
@@ -822,11 +848,14 @@ WeDo2.prototype.pingMotor = function (uuid) {
 								setTimeout(function(){
 
 								if(this.wedo[uuid].deviceType === "wedo2") {
-									this.getCharacteristic(uuid, "1565").write(Buffer([key, 0x01, 0x02, parseInt(thisMotor.motorResult)], true));
+									console.log("motor results .:  ::: ", key,  parseInt(thisMotor.motorResult));
+									//this.getCharacteristic(uuid, "1565").write(Buffer([key, 0x01, 0x02, parseInt(thisMotor.motorResult)], true));
+									this.writeTo(uuid, "1565", Buffer([key, 0x01, 0x02, parseInt(thisMotor.motorResult)]), function () {});
+
 								} else if(this.wedo[uuid].deviceType === "boost") {
 										this.writeTo(uuid, this.boostHub, Buffer([0x07, 0x00, 0x81, key, 0x11, 0x07, parseInt(thisMotor.motorResult)]), function () {});
 								}
-								}.bind(this, uuid), i*11);
+								}.bind(this, uuid), motorCount*11);
 								thisMotor.oldMotor = thisMotor.newMotor;
 							}
 							motorCount++;
@@ -847,6 +876,20 @@ WeDo2.prototype.map = function (x, in_min, in_max, out_min, out_max) {
 WeDo2.prototype.cout = function (text) {
 	console.log(text);
 };
+
+WeDo2.prototype.getPortList = function (callback, uuid) {
+	uuid = this.getUuidFromInput(uuid);
+	if (uuid != null && this.wedo[uuid]) {
+		let portLitst = {}
+		for (let key in this.wedo[uuid].port){
+			portLitst[key] = this.wedo[uuid].port[key].type
+			console.log("port: "+ key + " Device Type: " + this.wedo[uuid].port[key].type);
+		}
+		callback(portLitst, uuid);
+	}
+
+};
+
 
 WeDo2.prototype.getUuidFromInput = function (input) {
 	if (typeof input === "string") {
@@ -878,3 +921,5 @@ WeDo2.prototype.getUuidFromInput = function (input) {
 };
 
 module.exports = WeDo2;
+let Wedo2BoostPowerUp = WeDo2;
+module.exports = Wedo2BoostPowerUp;
