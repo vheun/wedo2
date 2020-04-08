@@ -2,7 +2,7 @@
 
 This is a node.js module for the Lego WeDo 2.0 and Lego Boost set.
 
-+ Version 1.7.x Supports the Lego Boost and other Lego connected Hub devices additionally to the wedo2. 
++ Version 2.0.0 Supports the Lego Boost and other Lego connected Hub devices additionally to the wedo2.
 + Version 1.6.x For compatibility, this version switched dependencies from noble to abandonware/noble.
 + Version 1.5.6 has a new initialization method, to support the name search.
 + Version 1.5.5 has new sensor ranges.
@@ -35,7 +35,7 @@ var wedo2 = new Wedo2("lego");
 ~~~~
 
 #### Additional initialization parameter for Boost only
-Boost allows setting the interval time between each sensor reading. It defines how often the Boost hub sends out messages. The default is 5. 
+Boost allows setting the interval time between each sensor reading. It defines how often the Boost hub sends out messages. The default is 5.
 
 ~~~~js
 var interval = 5;
